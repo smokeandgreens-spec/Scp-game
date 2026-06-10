@@ -33,6 +33,10 @@ interface GameStore {
 const DEFAULT_SETTINGS: GameSettings = {
   textSpeed: 'medium',
   soundEnabled: true,
+  sfxEnabled: true,
+  sfxVolume: 70,
+  musicEnabled: true,
+  musicVolume: 40,
   scanlineEffect: true,
   glitchEffect: true,
   fontSize: 'medium',

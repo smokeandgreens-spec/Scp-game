@@ -73,6 +73,7 @@ export interface StoryNode {
   choices?: Choice[];
   autoAdvanceToNodeId?: string; // for consequence nodes
   nextNodeId?: string;
+  addsJournalEntry?: string; // automatically added when node is reached
   metadata?: {
     date?: string;
     time?: string;
@@ -104,6 +105,10 @@ export type GameScreen = 'main-menu' | 'game' | 'load' | 'save' | 'settings' | '
 export interface GameSettings {
   textSpeed: 'slow' | 'medium' | 'fast' | 'instant';
   soundEnabled: boolean;
+  sfxEnabled: boolean;
+  sfxVolume: number;
+  musicEnabled: boolean;
+  musicVolume: number;
   scanlineEffect: boolean;
   glitchEffect: boolean;
   fontSize: 'small' | 'medium' | 'large';

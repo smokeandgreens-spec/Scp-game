@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { useLocation } from 'wouter';
+import { soundManager } from '../audio';
 
 const BOOT_SEQUENCE = [
   'INITIALIZING SECURE TERMINAL...',
@@ -33,9 +34,16 @@ export default function MainMenu() {
 
   useEffect(() => {
     if (bootPhase < BOOT_SEQUENCE.length) {
+      const line = BOOT_SEQUENCE[bootPhase];
+      if (line && !line.includes('WARNING')) {
+        soundManager.play('boot.beep');
+      } else if (line && line.includes('WARNING')) {
+        soundManager.play('game.warning');
+      }
       const t = setTimeout(() => setBootPhase(p => p + 1), bootPhase === 0 ? 200 : 350);
       return () => clearTimeout(t);
     } else {
+      soundManager.play('ui.confirm');
       const t = setTimeout(() => setBooting(false), 600);
       return () => clearTimeout(t);
     }
@@ -45,6 +53,7 @@ export default function MainMenu() {
     if (booting) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key.toLowerCase() === 'n') {
+        soundManager.play('ui.confirm');
         useGameStore.getState().newGame(1);
         setLocation('/game');
       }
@@ -53,12 +62,13 @@ export default function MainMenu() {
           .filter(s => !s.isEmpty)
           .sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime())[0];
         if (latest) {
+          soundManager.play('game.load');
           useGameStore.getState().loadGame(latest.id);
           setLocation('/game');
         }
       }
-      if (e.key.toLowerCase() === 'l') setLocation('/saves');
-      if (e.key.toLowerCase() === 's') setLocation('/settings');
+      if (e.key.toLowerCase() === 'l') { soundManager.play('ui.navigate'); setLocation('/saves'); }
+      if (e.key.toLowerCase() === 's') { soundManager.play('ui.navigate'); setLocation('/settings'); }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -117,7 +127,11 @@ export default function MainMenu() {
       <div className="flex flex-col gap-2 w-full max-w-sm mx-auto">
         <button
           className="text-left text-base py-3 px-4 border border-border hover:border-primary hover:bg-card transition-colors group tracking-wider"
-          onClick={() => { useGameStore.getState().newGame(1); setLocation('/game'); }}
+          onClick={() => {
+            soundManager.play('ui.confirm');
+            useGameStore.getState().newGame(1);
+            setLocation('/game');
+          }}
           data-testid="button-new-game"
         >
           <span className="text-muted-foreground group-hover:text-accent mr-3">&gt;</span>
@@ -135,8 +149,13 @@ export default function MainMenu() {
             const latest = saves
               .filter(s => !s.isEmpty)
               .sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime())[0];
-            if (latest) { useGameStore.getState().loadGame(latest.id); setLocation('/game'); }
+            if (latest) {
+              soundManager.play('game.load');
+              useGameStore.getState().loadGame(latest.id);
+              setLocation('/game');
+            }
           }}
+          onMouseEnter={() => hasSaves && soundManager.play('ui.click')}
           disabled={!hasSaves}
           data-testid="button-continue"
         >
@@ -148,7 +167,8 @@ export default function MainMenu() {
 
         <button
           className="text-left text-base py-3 px-4 border border-border hover:border-primary hover:bg-card transition-colors group tracking-wider"
-          onClick={() => setLocation('/saves')}
+          onClick={() => { soundManager.play('ui.navigate'); setLocation('/saves'); }}
+          onMouseEnter={() => soundManager.play('ui.click')}
           data-testid="button-load-game"
         >
           <span className="text-muted-foreground group-hover:text-accent mr-3">&gt;</span>
@@ -158,7 +178,8 @@ export default function MainMenu() {
 
         <button
           className="text-left text-base py-3 px-4 border border-border hover:border-primary hover:bg-card transition-colors group tracking-wider"
-          onClick={() => setLocation('/settings')}
+          onClick={() => { soundManager.play('ui.navigate'); setLocation('/settings'); }}
+          onMouseEnter={() => soundManager.play('ui.click')}
           data-testid="button-settings"
         >
           <span className="text-muted-foreground group-hover:text-accent mr-3">&gt;</span>

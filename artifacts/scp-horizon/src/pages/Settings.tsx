@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { Link, useLocation } from 'wouter';
 import { GameSettings } from '../types/game';
+import { soundManager } from '../audio';
 
 function ToggleGroup<T extends string>({
   label,
@@ -23,7 +24,7 @@ function ToggleGroup<T extends string>({
         {options.map(opt => (
           <button
             key={opt.value}
-            onClick={() => onChange(opt.value)}
+            onClick={() => { soundManager.play('ui.click'); onChange(opt.value); }}
             className={
               'px-4 py-2 text-sm border transition-colors tracking-widest ' +
               (value === opt.value
@@ -54,25 +55,57 @@ function Toggle({
   testId: string;
 }) {
   return (
-    <div className="mb-6 border-b border-border pb-6" data-testid={testId}>
-      <div className="flex justify-between items-start gap-4">
-        <div>
-          <div className="text-sm text-foreground tracking-widest mb-1">{label}</div>
-          <div className="text-xs text-muted-foreground">{description}</div>
-        </div>
-        <button
-          onClick={() => onChange(!value)}
-          className={
-            'px-4 py-2 text-sm border transition-colors tracking-widest shrink-0 ' +
-            (value
-              ? 'border-primary text-primary'
-              : 'border-border text-muted-foreground')
-          }
-          data-testid={'button-toggle-' + testId}
-        >
-          {value ? '[ ON ]' : '[ OFF ]'}
-        </button>
+    <div className="flex justify-between items-start gap-4 mb-4">
+      <div>
+        <div className="text-sm text-foreground tracking-widest mb-1">{label}</div>
+        <div className="text-xs text-muted-foreground">{description}</div>
       </div>
+      <button
+        onClick={() => { soundManager.play('ui.click'); onChange(!value); }}
+        className={
+          'px-4 py-2 text-sm border transition-colors tracking-widest shrink-0 ' +
+          (value
+            ? 'border-primary text-primary'
+            : 'border-border text-muted-foreground')
+        }
+        data-testid={'button-toggle-' + testId}
+      >
+        {value ? '[ ON ]' : '[ OFF ]'}
+      </button>
+    </div>
+  );
+}
+
+function VolumeSlider({
+  label,
+  value,
+  onChange,
+  testId,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  testId: string;
+}) {
+  const bars = Math.round(value / 10);
+  const filled = '▓'.repeat(bars);
+  const empty = '░'.repeat(10 - bars);
+  return (
+    <div className="mb-4">
+      <div className="flex justify-between items-center mb-2">
+        <div className="text-xs text-muted-foreground tracking-widest">{label}</div>
+        <div className="text-xs text-primary font-mono">[{filled}{empty}] {value}</div>
+      </div>
+      <input
+        type="range"
+        min={0}
+        max={100}
+        step={5}
+        value={value}
+        onChange={e => onChange(Number(e.target.value))}
+        className="terminal-slider w-full"
+        data-testid={'slider-' + testId}
+      />
     </div>
   );
 }
@@ -84,6 +117,7 @@ export default function Settings() {
   const [purged, setPurged] = useState(false);
 
   const handlePurge = () => {
+    soundManager.play('game.warning');
     for (let i = 1; i <= 5; i++) {
       localStorage.removeItem('scp-horizon-save-' + i);
     }
@@ -97,7 +131,8 @@ export default function Settings() {
 
         <div className="mb-8">
           <div className="text-xs text-muted-foreground tracking-widest mb-1">
-            <Link href={isGameActive ? '/game' : '/'} className="hover:text-primary transition-colors">
+            <Link href={isGameActive ? '/game' : '/'} className="hover:text-primary transition-colors"
+              onClick={() => soundManager.play('ui.back')}>
               &lt; {isGameActive ? 'RETURN TO OPERATION' : 'RETURN TO MAIN MENU'}
             </Link>
           </div>
@@ -134,6 +169,41 @@ export default function Settings() {
           testId="font-size"
         />
 
+        {/* Audio Section */}
+        <div className="mb-6 border-b border-border pb-6">
+          <div className="text-xs text-muted-foreground tracking-widest mb-4">AUDIO</div>
+
+          <Toggle
+            label="SOUND EFFECTS"
+            description="UI clicks, choice confirmations, chapter events."
+            value={settings.sfxEnabled}
+            onChange={v => updateSettings({ sfxEnabled: v, soundEnabled: v })}
+            testId="sfx"
+          />
+          <VolumeSlider
+            label="SFX VOLUME"
+            value={settings.sfxVolume}
+            onChange={v => updateSettings({ sfxVolume: v })}
+            testId="sfx-volume"
+          />
+
+          <div className="mt-5">
+            <Toggle
+              label="AMBIENT MUSIC"
+              description="Procedural drone atmosphere. Low-frequency. Unsettling."
+              value={settings.musicEnabled}
+              onChange={v => updateSettings({ musicEnabled: v })}
+              testId="music"
+            />
+            <VolumeSlider
+              label="MUSIC VOLUME"
+              value={settings.musicVolume}
+              onChange={v => updateSettings({ musicVolume: v })}
+              testId="music-volume"
+            />
+          </div>
+        </div>
+
         <Toggle
           label="SCANLINE EFFECT"
           description="Renders a CRT scanline overlay over the terminal. Atmospheric but may cause eye strain."
@@ -141,6 +211,7 @@ export default function Settings() {
           onChange={v => updateSettings({ scanlineEffect: v })}
           testId="scanlines"
         />
+        <div className="border-b border-border mb-6 pb-2" />
 
         <Toggle
           label="GLITCH EFFECT"
@@ -149,6 +220,7 @@ export default function Settings() {
           onChange={v => updateSettings({ glitchEffect: v })}
           testId="glitch"
         />
+        <div className="border-b border-border mb-6 pb-2" />
 
         {/* Danger Zone */}
         <div className="mt-8 border border-destructive p-4">
@@ -162,7 +234,7 @@ export default function Settings() {
                 PURGE ALL SAVES: Permanently deletes all five save files. Operation cannot be reversed.
               </div>
               <button
-                onClick={() => setConfirmPurge(true)}
+                onClick={() => { soundManager.play('game.warning'); setConfirmPurge(true); }}
                 className="border border-destructive text-destructive px-4 py-2 text-xs hover:bg-destructive hover:text-background transition-colors tracking-widest"
                 data-testid="button-purge-saves"
               >
@@ -185,7 +257,7 @@ export default function Settings() {
                   [ CONFIRM PURGE ]
                 </button>
                 <button
-                  onClick={() => setConfirmPurge(false)}
+                  onClick={() => { soundManager.play('ui.back'); setConfirmPurge(false); }}
                   className="border border-border text-muted-foreground px-4 py-2 text-xs hover:border-primary transition-colors tracking-widest"
                   data-testid="button-cancel-purge"
                 >
@@ -204,7 +276,7 @@ export default function Settings() {
 
         <div className="mt-8 border-t border-border pt-4">
           <button
-            onClick={() => setLocation(isGameActive ? '/game' : '/')}
+            onClick={() => { soundManager.play('ui.back'); setLocation(isGameActive ? '/game' : '/'); }}
             className="text-muted-foreground hover:text-primary transition-colors text-sm"
             data-testid="button-back"
           >

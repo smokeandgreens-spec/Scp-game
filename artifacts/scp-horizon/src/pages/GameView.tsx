@@ -4,6 +4,7 @@ import { useTypewriter } from '../hooks/useTypewriter';
 import { STORY_NODES } from '../data/storyNodes';
 import { Link, useLocation } from 'wouter';
 import { Choice } from '../types/game';
+import { soundManager } from '../audio';
 
 function ProgressBar({ value, label, isWarning = false }: { value: number; label: string; isWarning?: boolean }) {
   const bars = Math.floor(Math.max(0, Math.min(100, value)) / 10);
@@ -58,6 +59,9 @@ export default function GameView() {
     setCurrentParagraphIndex(0);
     setChoicesVisible(false);
     setShowContinue(false);
+    if (node?.type === 'chapter-start') {
+      soundManager.play('game.chapter-start');
+    }
   }, [currentNodeId]);
 
   useEffect(() => {
@@ -68,6 +72,7 @@ export default function GameView() {
       if (choicesVisible && node?.choices) {
         const num = parseInt(e.key);
         if (num >= 1 && num <= node.choices.length) {
+          soundManager.play('game.choice-select');
           handleChoice(node.choices[num - 1]);
         }
       }
@@ -93,6 +98,7 @@ export default function GameView() {
     } else {
       if (node.type === 'choice') {
         setChoicesVisible(true);
+        soundManager.play('game.choices-appear');
       } else {
         setShowContinue(true);
       }
@@ -100,16 +106,19 @@ export default function GameView() {
   };
 
   const handleContinue = () => {
+    soundManager.play('game.continue');
     if (node.autoAdvanceToNodeId) {
       advanceNarrative(node.autoAdvanceToNodeId);
     } else if (node.nextNodeId) {
       advanceNarrative(node.nextNodeId);
     } else if (node.type === 'ending') {
+      soundManager.play('game.ending');
       setLocation('/endings');
     }
   };
 
   const handleChoice = (choice: Choice) => {
+    soundManager.play('game.choice-select');
     makeChoice(choice);
   };
 
@@ -135,12 +144,18 @@ export default function GameView() {
         <div className="mt-auto">
           <div className="text-xs text-muted-foreground mb-3 border-b border-border pb-1 tracking-widest">SYSTEM LINKS</div>
           <div className="flex flex-col gap-1 text-xs">
-            <Link href="/log" className="text-muted-foreground hover:text-primary transition-colors py-1" data-testid="link-event-log">&gt; EVENT LOG</Link>
-            <Link href="/journal" className="text-muted-foreground hover:text-primary transition-colors py-1" data-testid="link-journal">&gt; JOURNAL</Link>
-            <Link href="/dossier" className="text-muted-foreground hover:text-primary transition-colors py-1" data-testid="link-dossier">&gt; DOSSIER</Link>
-            <Link href="/statistics" className="text-muted-foreground hover:text-primary transition-colors py-1" data-testid="link-statistics">&gt; STATISTICS</Link>
-            <Link href="/saves" className="text-muted-foreground hover:text-primary transition-colors py-1" data-testid="link-saves">&gt; SAVE GAME</Link>
-            <Link href="/" className="text-muted-foreground hover:text-destructive transition-colors py-1 mt-2" data-testid="link-main-menu">&gt; MAIN MENU</Link>
+            <Link href="/log" className="text-muted-foreground hover:text-primary transition-colors py-1" data-testid="link-event-log"
+              onClick={() => soundManager.play('ui.navigate')}>&gt; EVENT LOG</Link>
+            <Link href="/journal" className="text-muted-foreground hover:text-primary transition-colors py-1" data-testid="link-journal"
+              onClick={() => soundManager.play('ui.navigate')}>&gt; JOURNAL</Link>
+            <Link href="/dossier" className="text-muted-foreground hover:text-primary transition-colors py-1" data-testid="link-dossier"
+              onClick={() => soundManager.play('ui.navigate')}>&gt; DOSSIER</Link>
+            <Link href="/statistics" className="text-muted-foreground hover:text-primary transition-colors py-1" data-testid="link-statistics"
+              onClick={() => soundManager.play('ui.navigate')}>&gt; STATISTICS</Link>
+            <Link href="/saves" className="text-muted-foreground hover:text-primary transition-colors py-1" data-testid="link-saves"
+              onClick={() => soundManager.play('ui.navigate')}>&gt; SAVE GAME</Link>
+            <Link href="/" className="text-muted-foreground hover:text-destructive transition-colors py-1 mt-2" data-testid="link-main-menu"
+              onClick={() => soundManager.play('ui.back')}>&gt; MAIN MENU</Link>
           </div>
         </div>
       </div>
@@ -215,6 +230,7 @@ export default function GameView() {
                 <button
                   key={choice.id}
                   onClick={() => handleChoice(choice)}
+                  onMouseEnter={() => soundManager.play('ui.click')}
                   className="text-left p-4 border border-border hover:bg-card hover:border-primary transition-colors group flex gap-4 items-start"
                   data-testid={'button-choice-' + (idx + 1)}
                 >

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import MainMenu from "./pages/MainMenu";
 import GameView from "./pages/GameView";
@@ -9,6 +10,7 @@ import Saves from "./pages/Saves";
 import Settings from "./pages/Settings";
 import Endings from "./pages/Endings";
 import { useGameStore } from "./store/gameStore";
+import { soundManager, musicEngine } from "./audio";
 
 function Scanlines() {
   const scanlines = useGameStore(s => s.settings.scanlineEffect);
@@ -16,10 +18,41 @@ function Scanlines() {
   return <div className="scanlines pointer-events-none" />;
 }
 
+function AudioManager() {
+  const settings = useGameStore(s => s.settings);
+  const musicStarted = useRef(false);
+
+  useEffect(() => {
+    soundManager.setSettings(settings.sfxEnabled, settings.sfxVolume);
+  }, [settings.sfxEnabled, settings.sfxVolume]);
+
+  useEffect(() => {
+    musicEngine.setSettings(settings.musicEnabled, settings.musicVolume);
+  }, [settings.musicEnabled, settings.musicVolume]);
+
+  useEffect(() => {
+    const startMusic = () => {
+      if (!musicStarted.current && settings.musicEnabled) {
+        musicStarted.current = true;
+        musicEngine.start();
+      }
+    };
+    window.addEventListener('click', startMusic, { once: true });
+    window.addEventListener('keydown', startMusic, { once: true });
+    return () => {
+      window.removeEventListener('click', startMusic);
+      window.removeEventListener('keydown', startMusic);
+    };
+  }, [settings.musicEnabled]);
+
+  return null;
+}
+
 function App() {
   return (
     <div className="dark min-h-screen bg-background text-foreground font-mono antialiased relative">
       <Scanlines />
+      <AudioManager />
       <WouterRouter base={import.meta.env.BASE_URL?.replace(/\/$/, "") || ""}>
         <Switch>
           <Route path="/" component={MainMenu} />
