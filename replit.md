@@ -1,44 +1,68 @@
-# [Project name]
+# SCP: Horizon
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A dark, SCP Foundation-inspired text adventure RPG where the player is O5-1, making high-stakes decisions about a mysterious anomalous child during a six-day crisis at Site-19. Full Act I narrative with branching choices, visible/hidden stats, 3 endings, and a complete terminal UI.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/scp-horizon run dev` — run the frontend (port 19792)
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- Frontend: React + Vite (artifacts/scp-horizon)
+- State: Zustand (localStorage persistence only — no backend)
+- Routing: Wouter
+- Styling: Tailwind CSS, Share Tech Mono font (Google Fonts)
+- No backend needed
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+```
+artifacts/scp-horizon/src/
+  types/game.ts          — All TypeScript types (GameStats, StoryNode, Choice, SaveSlot...)
+  data/storyNodes.ts     — Full Act I story content (5 chapters, 3 endings, all characters, journal)
+  store/gameStore.ts     — Zustand store: state + localStorage save/load
+  hooks/useTypewriter.ts — Typewriter effect hook (respects text speed setting)
+  pages/
+    MainMenu.tsx         — Boot sequence + menu (routes: /)
+    GameView.tsx         — Core gameplay with sidebar/narrative/choices (/game)
+    EventLog.tsx         — Chronological event log (/log)
+    Journal.tsx          — Classified document library (/journal)
+    Dossier.tsx          — Character database, unlocks as encountered (/dossier)
+    Statistics.tsx       — Visible + hidden stats display (/statistics)
+    Saves.tsx            — 5 save slots: save/load/delete (/saves)
+    Settings.tsx         — Text speed, font size, scanlines, glitch, purge (/settings)
+    Endings.tsx          — Act I conclusion screen (/endings)
+  App.tsx                — Route registration (wouter)
+  index.css              — SCP dark terminal theme, animations, scanline overlay
+```
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- **No backend** — all persistence via localStorage keys `scp-horizon-save-{1-5}` and `scp-horizon-settings`
+- **Template literals in JSX**: AVOID escaped backticks (`\``) — subagent will corrupt them. Use string concatenation (`'a' + var + 'b'`) or `.join()` in JSX className attributes
+- **Zustand selectors**: Never call a function that returns new references inside a selector (e.g., `useGameStore(s => s.getSaveSlots())`) — causes infinite re-render. Use `useMemo` or `useState` with lazy initializer instead
+- **Story architecture**: StoryNode has `type: 'narrative' | 'choice' | 'consequence' | 'chapter-start' | 'ending'`. Consequence nodes use `autoAdvanceToNodeId`, choice nodes define `choices[]`, endings detected by stats thresholds (knowledge≥60 → Observer, trust≥60 → Caretaker, else Warden)
+- **CSS theme**: All in `index.css` as HSL CSS variables. Font is Share Tech Mono imported from Google Fonts (first line of index.css, before all other imports)
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+SCP: Horizon — Act I: The Girl. The player is O5-1 making decisions about a catatonic anomalous child found in a forest clearing. Five chapters (Monday–Saturday), branching narrative, 5 choices in Chapter 1, cascading consequences. Three endings based on accumulated stats:
+- **The Observer** (high knowledge) — you document everything
+- **The Caretaker** (high trust) — you attempt communication
+- **The Warden** (high fear) — you lock it all down
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+_Populate as needed._
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- **Google Fonts import MUST be first line of index.css** — before `@import "tailwindcss"`, or the font won't load
+- **Template literals in JSX** — use `'class-a ' + variable + ' class-b'` or `['class-a', variable].join(' ')` in JSX; template literals get corrupted by AI subagents (they write escaped backticks)
+- **`getSaveSlots()` pattern** — function returns new array each call; never use as Zustand selector directly
 
 ## Pointers
 

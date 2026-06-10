@@ -1,0 +1,49 @@
+import { Switch, Route, Router as WouterRouter } from "wouter";
+import MainMenu from "./pages/MainMenu";
+import GameView from "./pages/GameView";
+import EventLog from "./pages/EventLog";
+import Journal from "./pages/Journal";
+import Dossier from "./pages/Dossier";
+import Statistics from "./pages/Statistics";
+import Saves from "./pages/Saves";
+import Settings from "./pages/Settings";
+import Endings from "./pages/Endings";
+import { useGameStore } from "./store/gameStore";
+
+function Scanlines() {
+  const scanlines = useGameStore(s => s.settings.scanlineEffect);
+  if (!scanlines) return null;
+  return <div className="scanlines pointer-events-none" />;
+}
+
+function App() {
+  return (
+    <div className="dark min-h-screen bg-background text-foreground font-mono antialiased relative">
+      <Scanlines />
+      <WouterRouter base={import.meta.env.BASE_URL?.replace(/\/$/, "") || ""}>
+        <Switch>
+          <Route path="/" component={MainMenu} />
+          <Route path="/game" component={GameView} />
+          <Route path="/log" component={EventLog} />
+          <Route path="/journal" component={Journal} />
+          <Route path="/dossier" component={Dossier} />
+          <Route path="/statistics" component={Statistics} />
+          <Route path="/saves" component={Saves} />
+          <Route path="/settings" component={Settings} />
+          <Route path="/endings" component={Endings} />
+          <Route>
+            <div className="min-h-screen flex items-center justify-center text-destructive p-8 text-center font-mono">
+              <div>
+                <div className="text-2xl mb-4 tracking-widest">[ ERROR 404 ]</div>
+                <div className="text-sm text-muted-foreground mb-6">ROUTE NOT FOUND — RECORD DOES NOT EXIST</div>
+                <a href="/" className="text-primary hover:underline tracking-widest">&gt; RETURN TO MAIN MENU</a>
+              </div>
+            </div>
+          </Route>
+        </Switch>
+      </WouterRouter>
+    </div>
+  );
+}
+
+export default App;
