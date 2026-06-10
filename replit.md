@@ -63,6 +63,7 @@ _Populate as needed._
 - **Google Fonts import MUST be first line of index.css** — before `@import "tailwindcss"`, or the font won't load
 - **Template literals in JSX** — use `'class-a ' + variable + ' class-b'` or `['class-a', variable].join(' ')` in JSX; template literals get corrupted by AI subagents (they write escaped backticks)
 - **`getSaveSlots()` pattern** — function returns new array each call; never use as Zustand selector directly
+- **`useTypewriter` must not mutate refs or call side effects inside state updaters** — React 18 Concurrent Mode replays updaters; StrictMode double-invokes them. The hook uses a `setTimeout` chain (not `setInterval`) with index as plain state, and a `firedRef` guard so `onComplete` fires exactly once. Any edit to this hook must preserve those invariants.
 
 ## Pointers
 
