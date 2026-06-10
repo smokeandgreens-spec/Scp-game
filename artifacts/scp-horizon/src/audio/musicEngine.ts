@@ -7,6 +7,13 @@ class MusicEngine {
   private musicEnabled = true;
   private musicVolume = 40;
 
+  /**
+   * Set when suspendForTab() causes the context suspension.
+   * Prevents resumeFromTab() from un-suspending a context that was
+   * already suspended for a different reason (e.g. never started).
+   */
+  private suspendedByTab = false;
+
   private static readonly BASE_SCALE = 0.25;
 
   private init(): AudioContext | null {
@@ -80,6 +87,25 @@ class MusicEngine {
 
   stop() {
     this.fadeOut(true);
+  }
+
+  /** Instantly freeze the audio graph when the browser tab becomes hidden. */
+  suspendForTab() {
+    if (this.ctx && this.ctx.state === 'running') {
+      this.suspendedByTab = true;
+      this.ctx.suspend();
+    }
+  }
+
+  /**
+   * Resume the audio graph when the tab becomes visible again.
+   * Only acts if suspendForTab() was the cause of the suspension.
+   */
+  resumeFromTab() {
+    if (this.suspendedByTab && this.ctx) {
+      this.suspendedByTab = false;
+      this.ctx.resume();
+    }
   }
 
   private fadeOut(cleanup: boolean) {

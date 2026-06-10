@@ -22,14 +22,17 @@ function AudioManager() {
   const settings = useGameStore(s => s.settings);
   const musicStarted = useRef(false);
 
+  // Sync SFX settings to sound manager whenever they change
   useEffect(() => {
     soundManager.setSettings(settings.sfxEnabled, settings.sfxVolume);
   }, [settings.sfxEnabled, settings.sfxVolume]);
 
+  // Sync music settings to music engine whenever they change
   useEffect(() => {
     musicEngine.setSettings(settings.musicEnabled, settings.musicVolume);
   }, [settings.musicEnabled, settings.musicVolume]);
 
+  // Start music on first user interaction (browser autoplay policy)
   useEffect(() => {
     const startMusic = () => {
       if (!musicStarted.current && settings.musicEnabled) {
@@ -44,6 +47,20 @@ function AudioManager() {
       window.removeEventListener('keydown', startMusic);
     };
   }, [settings.musicEnabled]);
+
+  // Pause music when the tab is hidden; resume when it returns.
+  // The typewriter hook handles its own pause via usePageVisibility.
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.hidden) {
+        musicEngine.suspendForTab();
+      } else {
+        musicEngine.resumeFromTab();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
 
   return null;
 }

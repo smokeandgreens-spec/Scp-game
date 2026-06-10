@@ -20,5 +20,7 @@ The `useTypewriter` hook must never mutate a ref or call side effects (setState,
 
 5. **skip() is pure.** `const skip = useCallback(() => { setIndex(text.length); setIsDone(true); }, [text.length])` — no direct `onComplete` call; the completion effect fires naturally.
 
+5. **Tab-pause via `isPageVisible`.** The hook imports `usePageVisibility` and adds `isPageVisible` to the typing effect's dependency array. When the tab hides: effect cleanup fires `clearTimeout`, timer stops. When tab returns: effect re-runs with the same `index`, resumes exactly where it stopped. No extra state needed.
+
 ## How to apply
 Any future edit to `useTypewriter.ts` must preserve these invariants. If the implementation needs to change (e.g. variable speed, pause/resume), keep all side effects OUTSIDE of state updater functions and keep the single-`firedRef` guard for `onComplete`.

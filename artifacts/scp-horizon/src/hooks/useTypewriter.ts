@@ -1,29 +1,36 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useGameStore } from '../store/gameStore';
+import { usePageVisibility } from './usePageVisibility';
 
 /**
  * Typewriter effect hook.
  *
- * Design invariants that keep this bug-free across React 18 Concurrent Mode
- * and StrictMode (which double-invokes effects in development):
+ * Design invariants (must be preserved by future edits):
  *
- * 1. The typing index is plain React state — never mutated inside a state
- *    updater.  React may replay updater functions; mutation there causes
- *    index jumps and premature completion.
+ * 1. Index as plain React state — never mutated inside a state updater.
+ *    React 18 Concurrent Mode replays updater functions; mutation there
+ *    causes index jumps and premature completion.
  *
- * 2. One character advances per setTimeout (not setInterval) so cleanup
- *    via clearTimeout is always reliable — there's never more than one
- *    pending timer.
+ * 2. One character per setTimeout (not setInterval). clearTimeout in the
+ *    effect cleanup is always reliable; there is never more than one
+ *    pending timer at a time.
  *
- * 3. `onComplete` is stored in a ref so the latest version is always called
- *    without listing it as a dependency (which would restart typing on
- *    every parent re-render).
+ * 3. `onComplete` lives in a ref so the latest version is always called
+ *    without listing it as an effect dependency (which would restart
+ *    typing on every parent re-render).
  *
- * 4. `firedRef` ensures `onComplete` fires exactly once per text value even
- *    if StrictMode mounts/unmounts/remounts and the isDone effect re-fires.
+ * 4. `firedRef` ensures `onComplete` fires exactly once per text value
+ *    even when StrictMode mounts → unmounts → remounts.
+ *
+ * 5. `isPageVisible` is an effect dependency. When the tab is hidden the
+ *    effect returns early (no timer scheduled). When the tab returns the
+ *    effect re-runs with the unchanged `index` and resumes exactly where
+ *    it stopped — the existing clearTimeout cleanup handles the rest.
  */
 export function useTypewriter(text: string, onComplete?: () => void) {
   const speedSetting = useGameStore((s) => s.settings.textSpeed);
+  const isPageVisible = usePageVisibility();
+
   const [index, setIndex] = useState(0);
   const [isDone, setIsDone] = useState(false);
 
@@ -42,14 +49,14 @@ export function useTypewriter(text: string, onComplete?: () => void) {
     firedRef.current = false;
   }, [text, speedSetting]);
 
-  // Advance one character per tick via setTimeout
+  // Advance one character per tick — pauses automatically when tab is hidden
   useEffect(() => {
-    if (isDone) return;
+    if (isDone || !isPageVisible) return;
 
     const msPerChar =
-      speedSetting === 'slow'    ? 80  :
-      speedSetting === 'medium'  ? 40  :
-      speedSetting === 'fast'    ? 15  : 0;
+      speedSetting === 'slow'   ? 80 :
+      speedSetting === 'medium' ? 40 :
+      speedSetting === 'fast'   ? 15 : 0;
 
     if (msPerChar === 0 || text === '') {
       setIndex(text.length);
@@ -67,7 +74,7 @@ export function useTypewriter(text: string, onComplete?: () => void) {
     }, msPerChar);
 
     return () => clearTimeout(timer);
-  }, [index, isDone, text, speedSetting]);
+  }, [index, isDone, text, speedSetting, isPageVisible]);
 
   // Call onComplete exactly once when the text finishes
   useEffect(() => {
