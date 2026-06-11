@@ -16,6 +16,7 @@ import Analysis from "./pages/Analysis";
 import Codex from "./pages/Codex";
 import { useGameStore } from "./store/gameStore";
 import { soundManager, musicEngine } from "./audio";
+import ToastContainer from "./components/ToastContainer";
 
 function Scanlines() {
   const scanlines = useGameStore(s => s.settings.scanlineEffect);
@@ -70,6 +71,7 @@ function App() {
     <div className="dark min-h-screen bg-background text-foreground font-mono antialiased relative">
       <Scanlines />
       <AudioManager />
+      <ToastContainer />
       <WouterRouter base={import.meta.env.BASE_URL?.replace(/\/$/, "") || ""}>
         <Switch>
           <Route path="/" component={MainMenu} />

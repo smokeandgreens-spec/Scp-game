@@ -7,6 +7,7 @@ import { Link, useLocation } from 'wouter';
 import { Choice } from '../types/game';
 import { soundManager } from '../audio';
 import PuzzleModal from '../components/PuzzleModal';
+import { useToastStore } from '../store/toastStore';
 
 function ProgressBar({ value, label, isWarning = false }: { value: number; label: string; isWarning?: boolean }) {
   const bars = Math.floor(Math.max(0, Math.min(100, value)) / 10);
@@ -77,6 +78,8 @@ export default function GameView() {
   }, [currentNodeId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle puzzle completion: apply rewards then clear overlay
+  const { pushToast } = useToastStore();
+
   const handlePuzzleComplete = useCallback((succeeded: boolean) => {
     if (!activePuzzleId) return;
     completePuzzle(activePuzzleId, succeeded);
@@ -84,15 +87,24 @@ export default function GameView() {
       const puzzleDef = PUZZLE_DEFS[activePuzzleId];
       if (puzzleDef?.reward) {
         const { statEffects, flags, achievementId, journalEntryId } = puzzleDef.reward;
-        if (statEffects) applyStatEffects(statEffects);
+        if (statEffects) {
+          applyStatEffects(statEffects);
+          Object.entries(statEffects).forEach(([k, v]) => {
+            if (v && v > 0) {
+              pushToast({ type: 'reward', title: '+' + v + ' ' + k.toUpperCase(), subtitle: 'ANALYSIS REWARD APPLIED', duration: 3200 });
+            }
+          });
+        }
         if (flags) setFlags(flags);
         if (achievementId) unlockAchievement(achievementId);
         if (journalEntryId) addJournalEntry(journalEntryId);
       }
+    } else {
+      pushToast({ type: 'info', title: 'ANALYSIS FORFEITED', subtitle: 'No reward data will be recorded.', duration: 2800 });
     }
     setActivePuzzleId(null);
     saveGame(currentSaveSlot);
-  }, [activePuzzleId, completePuzzle, applyStatEffects, setFlags, unlockAchievement, addJournalEntry, saveGame, currentSaveSlot]);
+  }, [activePuzzleId, completePuzzle, applyStatEffects, setFlags, unlockAchievement, addJournalEntry, saveGame, currentSaveSlot, pushToast]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
