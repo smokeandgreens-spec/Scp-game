@@ -33,23 +33,23 @@ export type DecisionImpact =
   | 'paranoid';
 
 export interface StoryDecision {
-  id: string;         // e.g. 'act1-initial-placement'
-  choiceId: string;   // e.g. 'c1-medical'
-  label: string;      // Human-readable: "Chose medical placement"
+  id: string;
+  choiceId: string;
+  label: string;
   impact: DecisionImpact;
   chapter: number;
   act: number;
-  timestamp: string;  // ISO date
+  timestamp: string;
 }
 
 // ─── CHARACTER RELATIONSHIPS ──────────────────────────────────────────────────
 
 export interface CharacterRelationship {
   characterId: string;
-  trust: number;       // 0-100
-  affinity: number;    // 0-100
+  trust: number;
+  affinity: number;
   interactions: number;
-  lastInteraction?: string; // ISO date
+  lastInteraction?: string;
 }
 
 // ─── ACHIEVEMENTS ─────────────────────────────────────────────────────────────
@@ -58,28 +58,28 @@ export interface AchievementDefinition {
   id: string;
   title: string;
   description: string;
-  classification: string; // Foundation-themed flavour
+  classification: string;
   isSecret: boolean;
 }
 
 export interface UnlockedAchievement {
   id: string;
-  unlockedAt: string; // ISO date
+  unlockedAt: string;
 }
 
 // ─── ENDING RECORDS ───────────────────────────────────────────────────────────
 
-export type EndingId = 'observer' | 'caretaker' | 'warden';
+export type EndingId = 'observer' | 'caretaker' | 'warden' | 'door-discovered';
 
 export interface EndingRecord {
   endingId: EndingId;
-  unlockedAt: string; // ISO date
+  unlockedAt: string;
   finalStats: GameStats;
 }
 
 // ─── PUZZLES ──────────────────────────────────────────────────────────────────
 
-export type PuzzleType = 'memory-grid' | 'symbol-sequence';
+export type PuzzleType = 'memory-grid' | 'symbol-sequence' | 'evidence-sort';
 
 export interface PuzzleReward {
   flags?: GlobalFlags;
@@ -92,7 +92,7 @@ export interface PuzzleDefinition {
   id: string;
   type: PuzzleType;
   title: string;
-  flavor: string;   // In-world flavour text shown before puzzle starts
+  flavor: string;
   chapter: number;
   act: number;
   timeLimitSeconds?: number;
@@ -101,7 +101,7 @@ export interface PuzzleDefinition {
 
 export interface PuzzleCompletion {
   puzzleId: string;
-  completedAt: string; // ISO date
+  completedAt: string;
   succeeded: boolean;
   attempts: number;
 }
@@ -124,7 +124,7 @@ export interface SCPEntry {
   containmentProcedures: string;
   description: string;
   addendum?: string;
-  requiredClearance: number; // 1-5; player always has O5 (5)
+  requiredClearance: number;
   isRedacted: boolean;
 }
 
@@ -171,6 +171,8 @@ export type StoryNodeType =
   | 'chapter-start'
   | 'ending';
 
+export type InterviewApproach = 'compassion' | 'skepticism' | 'pressure' | 'curiosity' | 'standard';
+
 export interface Choice {
   id: string;
   text: string;
@@ -185,7 +187,6 @@ export interface Choice {
   unlocksCharacter?: string;
   addsJournalEntry?: string;
   addsEventLog?: string;
-  // New v2 fields
   setsFlags?: GlobalFlags;
   recordsDecision?: {
     id: string;
@@ -198,6 +199,13 @@ export interface Choice {
     trustDelta: number;
     affinityDelta: number;
   };
+  unlocksMemoryFragment?: string;
+  unlocksEvidence?: string;
+  addsInterviewRecord?: {
+    subjectId: string;
+    approach: InterviewApproach;
+    keyExchanges: string[];
+  };
 }
 
 export interface StoryNode {
@@ -207,7 +215,7 @@ export interface StoryNode {
   chapter: number;
   chapterTitle?: string;
   title?: string;
-  text: string | string[];  // string[] = paragraphs typed out sequentially
+  text: string | string[];
   choices?: Choice[];
   autoAdvanceToNodeId?: string;
   nextNodeId?: string;
@@ -218,17 +226,18 @@ export interface StoryNode {
     location?: string;
     classification?: string;
   };
-  endingType?: 'observer' | 'caretaker' | 'warden';
+  endingType?: EndingId;
   endingCondition?: (stats: GameStats) => boolean;
-  // New v2 fields
   setsFlags?: GlobalFlags;
   triggersPuzzle?: string;
   triggersAchievement?: string;
+  unlocksMemoryFragment?: string;
+  unlocksEvidence?: string;
 }
 
 // ─── SAVE SLOT ────────────────────────────────────────────────────────────────
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 export interface SaveSlot {
   // V1 core fields
@@ -253,6 +262,15 @@ export interface SaveSlot {
   achievements: UnlockedAchievement[];
   endingsSeen: EndingRecord[];
   completedPuzzles: PuzzleCompletion[];
+  // V3 fields (Act 2 systems)
+  memoryFragmentsUnlocked: string[];
+  reconstructionAttempts: MemoryReconstructionAttempt[];
+  researchAllocations: Partial<Record<ResearchBranchId, number>>;
+  researchAuthorized: boolean;
+  qfacDevelopment: QFACDevelopment;
+  theories: PlayerTheory[];
+  evidenceUnlocked: string[];
+  interviewRecords: InterviewRecord[];
 }
 
 // ─── SETTINGS ─────────────────────────────────────────────────────────────────
@@ -271,4 +289,93 @@ export interface GameSettings {
   scanlineEffect: boolean;
   glitchEffect: boolean;
   fontSize: 'small' | 'medium' | 'large';
+}
+
+// ─── MEMORY RECONSTRUCTION (Act 2) ───────────────────────────────────────────
+
+export type MemoryFragmentType = 'audio' | 'symbol' | 'drawing' | 'memory' | 'transcript';
+
+export interface MemoryFragment {
+  id: string;
+  type: MemoryFragmentType;
+  title: string;
+  content: string;
+  chapter: number;
+  act: number;
+  unlockFlag?: string;
+}
+
+export interface MemoryReconstructionAttempt {
+  id: string;
+  conclusion: string;
+  conclusionType: 'accurate' | 'partial' | 'inaccurate';
+  fragmentsExamined: string[];
+  completedAt: string;
+}
+
+// ─── RESEARCH SYSTEM (Act 2) ─────────────────────────────────────────────────
+
+export type ResearchBranchId = 'linguistics' | 'ai-analysis' | 'occult' | 'temporal';
+
+export interface ResearchTier {
+  threshold: number;
+  title: string;
+  revelation: string;
+  setsFlag?: string;
+}
+
+export interface ResearchBranch {
+  id: ResearchBranchId;
+  title: string;
+  description: string;
+  color: string;
+  tiers: ResearchTier[];
+}
+
+// ─── QFAC DEVELOPMENT (Act 2) ────────────────────────────────────────────────
+
+export type QFACPhilosophy = 'conservative' | 'experimental' | 'autonomous';
+
+export interface QFACDevelopment {
+  philosophy?: QFACPhilosophy;
+  stage: number;
+  unlockedCapabilities: string[];
+}
+
+// ─── EVIDENCE & THEORIES (Act 2) ─────────────────────────────────────────────
+
+export type EvidenceType = 'physical' | 'data' | 'testimony' | 'anomalous' | 'classified';
+export type TheoryStatus = 'active' | 'confirmed' | 'disproved' | 'superseded';
+
+export interface EvidenceItem {
+  id: string;
+  title: string;
+  content: string;
+  type: EvidenceType;
+  chapter: number;
+  act: number;
+  unlockFlag?: string;
+}
+
+export interface PlayerTheory {
+  id: string;
+  title: string;
+  description: string;
+  status: TheoryStatus;
+  evidenceIds: string[];
+  createdAt: string;
+  resolvedAt?: string;
+  resolutionNote?: string;
+}
+
+// ─── INTERVIEW RECORDS (Act 2) ───────────────────────────────────────────────
+
+export interface InterviewRecord {
+  id: string;
+  subjectId: string;
+  chapter: number;
+  act: number;
+  approach: InterviewApproach;
+  keyExchanges: string[];
+  conductedAt: string;
 }
