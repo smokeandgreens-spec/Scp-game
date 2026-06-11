@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { useTypewriter } from '../hooks/useTypewriter';
 import { STORY_NODES } from '../data/storyNodes';
+import { PUZZLE_DEFS } from '../data/puzzles';
 import { Link, useLocation } from 'wouter';
 import { Choice } from '../types/game';
 import { soundManager } from '../audio';
+import PuzzleModal from '../components/PuzzleModal';
 
 function ProgressBar({ value, label, isWarning = false }: { value: number; label: string; isWarning?: boolean }) {
   const bars = Math.floor(Math.max(0, Math.min(100, value)) / 10);
@@ -46,7 +48,11 @@ function NarrativeParagraph({ text, onComplete, isLast }: { text: string; onComp
 }
 
 export default function GameView() {
-  const { currentNodeId, stats, advanceNarrative, makeChoice, eventLog } = useGameStore();
+  const {
+    currentNodeId, stats, advanceNarrative, makeChoice, eventLog,
+    completePuzzle, isPuzzleCompleted, setFlags, unlockAchievement,
+    applyStatEffects, addJournalEntry, saveGame, currentSaveSlot,
+  } = useGameStore();
   const [, setLocation] = useLocation();
   const node = STORY_NODES[currentNodeId];
   const textArray = Array.isArray(node?.text) ? node.text : [node?.text || ''];
@@ -54,7 +60,9 @@ export default function GameView() {
   const [currentParagraphIndex, setCurrentParagraphIndex] = useState(0);
   const [choicesVisible, setChoicesVisible] = useState(false);
   const [showContinue, setShowContinue] = useState(false);
+  const [activePuzzleId, setActivePuzzleId] = useState<string | null>(null);
 
+  // Reset paragraph state and check for puzzle trigger on node change
   useEffect(() => {
     setCurrentParagraphIndex(0);
     setChoicesVisible(false);
@@ -62,10 +70,33 @@ export default function GameView() {
     if (node?.type === 'chapter-start') {
       soundManager.play('game.chapter-start');
     }
-  }, [currentNodeId]);
+    // Trigger puzzle if node has one and it hasn't been done yet
+    if (node?.triggersPuzzle && !isPuzzleCompleted(node.triggersPuzzle)) {
+      setActivePuzzleId(node.triggersPuzzle);
+    }
+  }, [currentNodeId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Handle puzzle completion: apply rewards then clear overlay
+  const handlePuzzleComplete = useCallback((succeeded: boolean) => {
+    if (!activePuzzleId) return;
+    completePuzzle(activePuzzleId, succeeded);
+    if (succeeded) {
+      const puzzleDef = PUZZLE_DEFS[activePuzzleId];
+      if (puzzleDef?.reward) {
+        const { statEffects, flags, achievementId, journalEntryId } = puzzleDef.reward;
+        if (statEffects) applyStatEffects(statEffects);
+        if (flags) setFlags(flags);
+        if (achievementId) unlockAchievement(achievementId);
+        if (journalEntryId) addJournalEntry(journalEntryId);
+      }
+    }
+    setActivePuzzleId(null);
+    saveGame(currentSaveSlot);
+  }, [activePuzzleId, completePuzzle, applyStatEffects, setFlags, unlockAchievement, addJournalEntry, saveGame, currentSaveSlot]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (activePuzzleId) return; // Block keyboard nav while puzzle is open
       if (!choicesVisible && showContinue && (e.key === 'Enter' || e.key === ' ')) {
         handleContinue();
       }
@@ -125,12 +156,17 @@ export default function GameView() {
   return (
     <div className="min-h-screen bg-background text-primary font-mono flex flex-col md:flex-row terminal-flicker">
 
+      {/* Puzzle overlay — rendered on top of everything */}
+      {activePuzzleId && (
+        <PuzzleModal puzzleId={activePuzzleId} onComplete={handlePuzzleComplete} />
+      )}
+
       {/* LEFT SIDEBAR */}
       <div className="w-full md:w-60 border-b md:border-b-0 md:border-r border-border p-4 bg-card shrink-0 flex flex-col">
         <div className="mb-6">
           <div className="text-xs text-muted-foreground mb-1 tracking-widest">DESIGNATION</div>
           <div className="font-bold text-foreground text-sm">O5-1</div>
-          <div className="text-xs text-muted-foreground">ACT I — CH.{node.chapter}</div>
+          <div className="text-xs text-muted-foreground">{'ACT I — CH.' + node.chapter}</div>
         </div>
 
         <div className="mb-6">
@@ -144,12 +180,18 @@ export default function GameView() {
         <div className="mt-auto">
           <div className="text-xs text-muted-foreground mb-3 border-b border-border pb-1 tracking-widest">SYSTEM LINKS</div>
           <div className="flex flex-col gap-1 text-xs">
-            <Link href="/log" className="text-muted-foreground hover:text-primary transition-colors py-1" data-testid="link-event-log"
-              onClick={() => soundManager.play('ui.navigate')}>&gt; EVENT LOG</Link>
+            <Link href="/timeline" className="text-muted-foreground hover:text-primary transition-colors py-1"
+              onClick={() => soundManager.play('ui.navigate')}>&gt; TIMELINE</Link>
             <Link href="/journal" className="text-muted-foreground hover:text-primary transition-colors py-1" data-testid="link-journal"
               onClick={() => soundManager.play('ui.navigate')}>&gt; JOURNAL</Link>
-            <Link href="/dossier" className="text-muted-foreground hover:text-primary transition-colors py-1" data-testid="link-dossier"
-              onClick={() => soundManager.play('ui.navigate')}>&gt; DOSSIER</Link>
+            <Link href="/codex" className="text-muted-foreground hover:text-primary transition-colors py-1"
+              onClick={() => soundManager.play('ui.navigate')}>&gt; CODEX</Link>
+            <Link href="/scp-db" className="text-muted-foreground hover:text-primary transition-colors py-1"
+              onClick={() => soundManager.play('ui.navigate')}>&gt; SCP DATABASE</Link>
+            <Link href="/analysis" className="text-muted-foreground hover:text-primary transition-colors py-1"
+              onClick={() => soundManager.play('ui.navigate')}>&gt; QFAC ANALYSIS</Link>
+            <Link href="/achievements" className="text-muted-foreground hover:text-primary transition-colors py-1"
+              onClick={() => soundManager.play('ui.navigate')}>&gt; ACHIEVEMENTS</Link>
             <Link href="/statistics" className="text-muted-foreground hover:text-primary transition-colors py-1" data-testid="link-statistics"
               onClick={() => soundManager.play('ui.navigate')}>&gt; STATISTICS</Link>
             <Link href="/saves" className="text-muted-foreground hover:text-primary transition-colors py-1" data-testid="link-saves"
@@ -163,7 +205,6 @@ export default function GameView() {
       {/* MAIN CONTENT */}
       <div className="flex-grow p-4 sm:p-8 max-w-3xl w-full mx-auto relative overflow-y-auto">
 
-        {/* Classification Header */}
         {node.metadata && (
           <div className="classification-header text-xs mb-8 animate-fade-in-up">
             <div className="text-muted-foreground mb-1">╔═══════════════════════════════════════════╗</div>
@@ -183,21 +224,18 @@ export default function GameView() {
           </div>
         )}
 
-        {/* Chapter Title */}
         {(node.type === 'chapter-start' || node.type === 'ending') && node.chapterTitle && (
           <h2 className="text-xl sm:text-3xl font-bold text-foreground mb-10 border-b border-border pb-4 mt-4 glitch-text tracking-widest" data-testid="chapter-title">
             {node.chapterTitle || node.title}
           </h2>
         )}
 
-        {/* Choice / Directive Title */}
         {node.type === 'choice' && node.title && (
           <h3 className="text-base sm:text-lg font-bold text-accent mb-6 tracking-widest border-b border-border pb-2" data-testid="choice-title">
             ► {node.title}
           </h3>
         )}
 
-        {/* Narrative Text */}
         <div className="mb-10">
           {textArray.slice(0, currentParagraphIndex + 1).map((txt, idx) => (
             <NarrativeParagraph
@@ -209,7 +247,6 @@ export default function GameView() {
           ))}
         </div>
 
-        {/* Action Area */}
         <div className="mt-6 mb-16">
           {showContinue && (
             <button
@@ -224,7 +261,7 @@ export default function GameView() {
           {choicesVisible && node.choices && (
             <div className="flex flex-col gap-3 animate-fade-in-up">
               <div className="text-xs text-muted-foreground mb-2 tracking-widest">
-                — SELECT DIRECTIVE — KEYBOARD: [1]-[{node.choices.length}] —
+                {'— SELECT DIRECTIVE — KEYBOARD: [1]-[' + node.choices.length + '] —'}
               </div>
               {node.choices.map((choice, idx) => (
                 <button

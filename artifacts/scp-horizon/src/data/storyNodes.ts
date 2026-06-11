@@ -176,6 +176,9 @@ export const STORY_NODES: Record<string, StoryNode> = {
         hiddenStatEffects: { scp5005Relationship: 5 },
         addsJournalEntry: 'j-discovery',
         addsEventLog: 'Authorized medical transfer. Dr. Chen assigned as primary observer.',
+        setsFlags: { act1_placement: 'medical', act1_compassionate: true },
+        recordsDecision: { id: 'act1-initial-placement', label: 'Chose medical placement — welfare first', impact: 'compassionate' },
+        updatesRelationship: { characterId: 'dr-chen', trustDelta: 10, affinityDelta: 5 },
       },
       {
         id: 'c1-research',
@@ -186,6 +189,9 @@ export const STORY_NODES: Record<string, StoryNode> = {
         hiddenStatEffects: { researchAccuracy: 5 },
         addsJournalEntry: 'j-discovery',
         addsEventLog: 'Authorized research transfer. Immediate testing protocol initiated.',
+        setsFlags: { act1_placement: 'research', act1_aggressive_start: true },
+        recordsDecision: { id: 'act1-initial-placement', label: 'Chose research placement — data over welfare', impact: 'aggressive' },
+        updatesRelationship: { characterId: 'dr-vasquez', trustDelta: 10, affinityDelta: 5 },
       },
       {
         id: 'c1-footage',
@@ -196,6 +202,8 @@ export const STORY_NODES: Record<string, StoryNode> = {
         hiddenStatEffects: { unknownInfluence: 5 },
         addsJournalEntry: 'j-discovery',
         addsEventLog: 'Requested full recovery footage review before placement decision.',
+        setsFlags: { act1_reviewed_footage: true },
+        recordsDecision: { id: 'act1-initial-placement', label: 'Reviewed footage before committing — evidence first', impact: 'analytical' },
       },
       {
         id: 'c1-interview',
@@ -205,6 +213,8 @@ export const STORY_NODES: Record<string, StoryNode> = {
         statEffects: { knowledge: 10, authority: 5 },
         addsJournalEntry: 'j-discovery',
         addsEventLog: 'Summoned MTF X-Zeta-1 for direct O5 debriefing.',
+        setsFlags: { act1_interviewed_team: true },
+        recordsDecision: { id: 'act1-initial-placement', label: 'Demanded direct briefing from the recovery team', impact: 'authoritative' },
       },
       {
         id: 'c1-forest',
@@ -215,6 +225,8 @@ export const STORY_NODES: Record<string, StoryNode> = {
         hiddenStatEffects: { unknownInfluence: 10 },
         addsJournalEntry: 'j-discovery',
         addsEventLog: 'Authorized secondary forensic investigation of Ashford clearing.',
+        setsFlags: { act1_investigated_forest: true },
+        recordsDecision: { id: 'act1-initial-placement', label: 'Ordered secondary forest investigation before acting', impact: 'analytical' },
       },
     ],
   },
@@ -375,6 +387,9 @@ export const STORY_NODES: Record<string, StoryNode> = {
         statEffects: { knowledge: 20, trust: -20, fear: 10 },
         hiddenStatEffects: { researchAccuracy: 10, scp5005Relationship: -20 },
         addsEventLog: 'Authorized aggressive testing protocol on provisional SCP-5005.',
+        setsFlags: { act1_testing: 'aggressive', act1_made_her_cry: true },
+        recordsDecision: { id: 'act1-testing', label: 'Authorized aggressive testing — data above discomfort', impact: 'aggressive' },
+        triggersAchievement: 'ach-cold-science',
       },
       {
         id: 'c2-standard',
@@ -384,6 +399,9 @@ export const STORY_NODES: Record<string, StoryNode> = {
         statEffects: { knowledge: 10, authority: 5 },
         hiddenStatEffects: { researchAccuracy: 5, scp5005Relationship: -5 },
         addsEventLog: 'Authorized standard testing protocol on provisional SCP-5005.',
+        setsFlags: { act1_testing: 'standard' },
+        recordsDecision: { id: 'act1-testing', label: 'Authorized standard testing protocol — by the book', impact: 'analytical' },
+        triggersAchievement: 'ach-by-the-book',
       },
       {
         id: 'c2-compassion',
@@ -393,6 +411,9 @@ export const STORY_NODES: Record<string, StoryNode> = {
         statEffects: { trust: 20, knowledge: -5 },
         hiddenStatEffects: { scp5005Relationship: 20 },
         addsEventLog: 'Authorized compassionate observation protocol. No invasive testing.',
+        setsFlags: { act1_testing: 'compassionate', act1_showed_mercy: true },
+        recordsDecision: { id: 'act1-testing', label: 'Chose compassionate observation over invasive testing', impact: 'compassionate' },
+        triggersAchievement: 'ach-quiet-mercy',
       },
     ],
   },
@@ -487,6 +508,7 @@ export const STORY_NODES: Record<string, StoryNode> = {
       'You find this less reassuring than you expected.',
     ],
     nextNodeId: 'ch3-findings',
+    triggersPuzzle: 'puzzle-forest-symbols',
   },
 
   'ch3-findings': {
@@ -560,6 +582,7 @@ export const STORY_NODES: Record<string, StoryNode> = {
       'You call your expert contacts.',
     ],
     nextNodeId: 'ch4-assignment-choice',
+    triggersPuzzle: 'puzzle-voice-sequence',
   },
 
   'ch4-assignment-choice': {

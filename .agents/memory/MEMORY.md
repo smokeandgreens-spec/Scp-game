@@ -1,3 +1,4 @@
 - [SCP Horizon JSX template literals](scp-horizon-jsx-patterns.md) — AI subagents corrupt backtick template literals in JSX; use string concat instead
 - [SCP Horizon Zustand selector pitfall](scp-horizon-zustand-pitfall.md) — calling functions returning new refs inside Zustand selectors causes infinite re-renders
 - [Typewriter hook — safe React 18 pattern](typewriter-hook-pattern.md) — never mutate refs or call side effects inside state updaters; use setTimeout chain + firedRef guard
+- [SCP Horizon v2 architecture](scp-horizon-v2-arch.md) — 12-system upgrade; SaveSlot has SAVE_VERSION=2, migration in loadGame; puzzle triggers on ch3-start and ch4-start nodes; 5 new routes in App.tsx

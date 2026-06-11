@@ -9,6 +9,11 @@ import Statistics from "./pages/Statistics";
 import Saves from "./pages/Saves";
 import Settings from "./pages/Settings";
 import Endings from "./pages/Endings";
+import Achievements from "./pages/Achievements";
+import Timeline from "./pages/Timeline";
+import SCPDatabase from "./pages/SCPDatabase";
+import Analysis from "./pages/Analysis";
+import Codex from "./pages/Codex";
 import { useGameStore } from "./store/gameStore";
 import { soundManager, musicEngine } from "./audio";
 
@@ -22,17 +27,14 @@ function AudioManager() {
   const settings = useGameStore(s => s.settings);
   const musicStarted = useRef(false);
 
-  // Sync SFX settings to sound manager whenever they change
   useEffect(() => {
     soundManager.setSettings(settings.sfxEnabled, settings.sfxVolume);
   }, [settings.sfxEnabled, settings.sfxVolume]);
 
-  // Sync music settings to music engine whenever they change
   useEffect(() => {
     musicEngine.setSettings(settings.musicEnabled, settings.musicVolume);
   }, [settings.musicEnabled, settings.musicVolume]);
 
-  // Start music on first user interaction (browser autoplay policy)
   useEffect(() => {
     const startMusic = () => {
       if (!musicStarted.current && settings.musicEnabled) {
@@ -48,8 +50,6 @@ function AudioManager() {
     };
   }, [settings.musicEnabled]);
 
-  // Pause music when the tab is hidden; resume when it returns.
-  // The typewriter hook handles its own pause via usePageVisibility.
   useEffect(() => {
     const handleVisibility = () => {
       if (document.hidden) {
@@ -81,6 +81,11 @@ function App() {
           <Route path="/saves" component={Saves} />
           <Route path="/settings" component={Settings} />
           <Route path="/endings" component={Endings} />
+          <Route path="/achievements" component={Achievements} />
+          <Route path="/timeline" component={Timeline} />
+          <Route path="/scp-db" component={SCPDatabase} />
+          <Route path="/analysis" component={Analysis} />
+          <Route path="/codex" component={Codex} />
           <Route>
             <div className="min-h-screen flex items-center justify-center text-destructive p-8 text-center font-mono">
               <div>
